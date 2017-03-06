@@ -45,19 +45,88 @@ func (t TextErr) MarshalText() ([]byte, error) {
 var (
 	// ErrZeroValue is the error returned when variable has zero valud
 	// and nonzero was specified
-	ErrZeroValue = TextErr{errors.New("zero value")}
+	ErrZeroValue       = TextErr{errors.New("zero value")}
+	ErrZeroValueEmpty  = TextErr{errors.New("Must not be empty")}
+	ErrZeroValueNumber = TextErr{errors.New("Cannot be 0")}
+	ErrZeroValueBool   = TextErr{errors.New("Cannot be false")}
 	// ErrMin is the error returned when variable is less than mininum
 	// value specified
-	ErrMin = TextErr{errors.New("less than min")}
+	ErrMin       = TextErr{errors.New("less than min")}
+	ErrMinString = func(min int64, actual int) TextErr {
+		return TextErr{errors.New(
+			fmt.Sprintf("Must be at least %d characters long, only had %d characters", min, actual),
+		)}
+	}
+	ErrMinArray = func(min int64, actual int) TextErr {
+		return TextErr{errors.New(
+			fmt.Sprintf("Must have at least %d value(s), only had %d value(s)", min, actual),
+		)}
+	}
+	ErrMinInt = func(min int64, actual int64) TextErr {
+		return TextErr{errors.New(
+			fmt.Sprintf("Must be at least %d, was %d", min, actual),
+		)}
+	}
+	ErrMinFloat = func(min float64, actual float64) TextErr {
+		return TextErr{errors.New(
+			fmt.Sprintf("Must be at least %.2f, was %.2f", min, actual),
+		)}
+	}
+
 	// ErrMax is the error returned when variable is more than
 	// maximum specified
-	ErrMax = TextErr{errors.New("greater than max")}
+	ErrMax       = TextErr{errors.New("greater than max")}
+	ErrMaxString = func(max int64, actual int) TextErr {
+		return TextErr{errors.New(
+			fmt.Sprintf("Must not have more than %d characters, had %d characters", max, actual),
+		)}
+	}
+	ErrMaxArray = func(max int64, actual int) TextErr {
+		return TextErr{errors.New(
+			fmt.Sprintf("Must not have more than %d value(s), had %d value(s)", max, actual),
+		)}
+	}
+	ErrMaxInt = func(max int64, actual int64) TextErr {
+		return TextErr{errors.New(
+			fmt.Sprintf("Must not be greater than %d, was %d", max, actual),
+		)}
+	}
+	ErrMaxFloat = func(max float64, actual float64) TextErr {
+		return TextErr{errors.New(
+			fmt.Sprintf("Must not be greater than %.2f, was %.2f", max, actual),
+		)}
+	}
 	// ErrLen is the error returned when length is not equal to
 	// param specified
-	ErrLen = TextErr{errors.New("invalid length")}
+	ErrLen       = TextErr{errors.New("invalid length")}
+	ErrLenString = func(len int64, actual int) TextErr {
+		return TextErr{errors.New(
+			fmt.Sprintf("Must have exactly %d characters, was %d characters", len, actual),
+		)}
+	}
+	ErrLenArray = func(len int64, actual int) TextErr {
+		return TextErr{errors.New(
+			fmt.Sprintf("Must have exactly %d value(s), had %d value(s)", len, actual),
+		)}
+	}
+	ErrLenInt = func(len int64, actual int64) TextErr {
+		return TextErr{errors.New(
+			fmt.Sprintf("Must be exactly %d, was %d", len, actual),
+		)}
+	}
+	ErrLenFloat = func(len float64, actual float64) TextErr {
+		return TextErr{errors.New(
+			fmt.Sprintf("Must be exactly %f, was %f", len, actual),
+		)}
+	}
 	// ErrRegexp is the error returned when the value does not
 	// match the provided regular expression parameter
-	ErrRegexp = TextErr{errors.New("regular expression mismatch")}
+	ErrRegexp         = TextErr{errors.New("regular expression mismatch")}
+	ErrRegexpDetailed = func(regex string) TextErr {
+		return TextErr{errors.New(
+			fmt.Sprintf(`Failed to match regular expression "%s"`, regex),
+		)}
+	}
 	// ErrUnsupported is the error error returned when a validation rule
 	// is used with an unsupported variable type
 	ErrUnsupported = TextErr{errors.New("unsupported type")}

@@ -20,8 +20,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/movio/validator"
+
 	. "gopkg.in/check.v1"
-	"gopkg.in/validator.v2"
 )
 
 func Test(t *testing.T) {
@@ -77,15 +78,15 @@ func (ms *MySuite) TestValidate(c *C) {
 
 	errs, ok := err.(validator.ErrorMap)
 	c.Assert(ok, Equals, true)
-	c.Assert(errs["A"], HasError, validator.ErrZeroValue)
-	c.Assert(errs["B"], HasError, validator.ErrLen)
-	c.Assert(errs["B"], HasError, validator.ErrMin)
-	c.Assert(errs["B"], HasError, validator.ErrMax)
+	c.Assert(errs["A"], HasError, validator.ErrZeroValueNumber)
+	c.Assert(errs["B"], HasError, validator.ErrLenString(8, len(t.B)))
+	c.Assert(errs["B"], HasError, validator.ErrMinString(6, len(t.B)))
+	c.Assert(errs["B"], HasError, validator.ErrMaxString(4, len(t.B)))
 	c.Assert(errs["Sub.A"], HasLen, 0)
 	c.Assert(errs["Sub.B"], HasLen, 0)
 	c.Assert(errs["Sub.C"], HasLen, 2)
-	c.Assert(errs["Sub.D"], HasError, validator.ErrZeroValue)
-	c.Assert(errs["E.F"], HasError, validator.ErrLen)
+	c.Assert(errs["Sub.D"], HasError, validator.ErrZeroValueEmpty)
+	c.Assert(errs["E.F"], HasError, validator.ErrLenString(3, len(t.E.Foo())))
 }
 
 func (ms *MySuite) TestValidSlice(c *C) {
@@ -94,7 +95,7 @@ func (ms *MySuite) TestValidSlice(c *C) {
 	c.Assert(err, NotNil)
 	errs, ok := err.(validator.ErrorArray)
 	c.Assert(ok, Equals, true)
-	c.Assert(errs, HasError, validator.ErrZeroValue)
+	c.Assert(errs, HasError, validator.ErrZeroValueEmpty)
 
 	for i := 0; i < 10; i++ {
 		s = append(s, i)
@@ -104,10 +105,10 @@ func (ms *MySuite) TestValidSlice(c *C) {
 	c.Assert(err, NotNil)
 	errs, ok = err.(validator.ErrorArray)
 	c.Assert(ok, Equals, true)
-	c.Assert(errs, HasError, validator.ErrMin)
-	c.Assert(errs, HasError, validator.ErrMax)
-	c.Assert(errs, HasError, validator.ErrLen)
-	c.Assert(errs, Not(HasError), validator.ErrZeroValue)
+	c.Assert(errs, HasError, validator.ErrMinArray(11, len(s)))
+	c.Assert(errs, HasError, validator.ErrMaxArray(5, len(s)))
+	c.Assert(errs, HasError, validator.ErrLenArray(9, len(s)))
+	c.Assert(errs, Not(HasError), validator.ErrZeroValueEmpty)
 }
 
 func (ms *MySuite) TestValidMap(c *C) {
@@ -116,20 +117,20 @@ func (ms *MySuite) TestValidMap(c *C) {
 	c.Assert(err, NotNil)
 	errs, ok := err.(validator.ErrorArray)
 	c.Assert(ok, Equals, true)
-	c.Assert(errs, HasError, validator.ErrZeroValue)
+	c.Assert(errs, HasError, validator.ErrZeroValueEmpty)
 
 	err = validator.Valid(m, "min=1")
 	c.Assert(err, NotNil)
 	errs, ok = err.(validator.ErrorArray)
 	c.Assert(ok, Equals, true)
-	c.Assert(errs, HasError, validator.ErrMin)
+	c.Assert(errs, HasError, validator.ErrMinArray(1, len(m)))
 
 	m = map[string]string{"A": "a", "B": "a"}
 	err = validator.Valid(m, "max=1")
 	c.Assert(err, NotNil)
 	errs, ok = err.(validator.ErrorArray)
 	c.Assert(ok, Equals, true)
-	c.Assert(errs, HasError, validator.ErrMax)
+	c.Assert(errs, HasError, validator.ErrMaxArray(1, len(m)))
 
 	err = validator.Valid(m, "min=2, max=5")
 	c.Assert(err, IsNil)
@@ -145,9 +146,9 @@ func (ms *MySuite) TestValidMap(c *C) {
 	c.Assert(err, NotNil)
 	errs, ok = err.(validator.ErrorArray)
 	c.Assert(ok, Equals, true)
-	c.Assert(errs, HasError, validator.ErrLen)
-	c.Assert(errs, HasError, validator.ErrMin)
-	c.Assert(errs, HasError, validator.ErrMax)
+	c.Assert(errs, HasError, validator.ErrLenArray(4, len(m)))
+	c.Assert(errs, HasError, validator.ErrMinArray(6, len(m)))
+	c.Assert(errs, HasError, validator.ErrMaxArray(1, len(m)))
 	c.Assert(errs, Not(HasError), validator.ErrZeroValue)
 
 }
@@ -160,11 +161,11 @@ func (ms *MySuite) TestValidFloat(c *C) {
 	c.Assert(err, NotNil)
 	errs, ok := err.(validator.ErrorArray)
 	c.Assert(ok, Equals, true)
-	c.Assert(errs, HasError, validator.ErrZeroValue)
+	c.Assert(errs, HasError, validator.ErrZeroValueNumber)
 }
 
 func (ms *MySuite) TestValidInt(c *C) {
-	i := 123
+	i := int64(123)
 	err := validator.Valid(i, "nonzero")
 	c.Assert(err, IsNil)
 
@@ -175,14 +176,14 @@ func (ms *MySuite) TestValidInt(c *C) {
 	c.Assert(err, NotNil)
 	errs, ok := err.(validator.ErrorArray)
 	c.Assert(ok, Equals, true)
-	c.Assert(errs, HasError, validator.ErrMin)
-	c.Assert(errs, HasError, validator.ErrMax)
+	c.Assert(errs, HasError, validator.ErrMinInt(124, i))
+	c.Assert(errs, HasError, validator.ErrMaxInt(122, i))
 
 	err = validator.Valid(i, "max=10")
 	c.Assert(err, NotNil)
 	errs, ok = err.(validator.ErrorArray)
 	c.Assert(ok, Equals, true)
-	c.Assert(errs, HasError, validator.ErrMax)
+	c.Assert(errs, HasError, validator.ErrMaxInt(10, i))
 }
 
 func (ms *MySuite) TestValidString(c *C) {
@@ -194,7 +195,7 @@ func (ms *MySuite) TestValidString(c *C) {
 	c.Assert(err, NotNil)
 	errs, ok := err.(validator.ErrorArray)
 	c.Assert(ok, Equals, true)
-	c.Assert(errs, HasError, validator.ErrLen)
+	c.Assert(errs, HasError, validator.ErrLenString(0, len(s)))
 
 	err = validator.Valid(s, "regexp=^[tes]{4}.*")
 	c.Assert(err, IsNil)
@@ -202,13 +203,14 @@ func (ms *MySuite) TestValidString(c *C) {
 	err = validator.Valid(s, "regexp=^.*[0-9]{5}$")
 	c.Assert(errs, NotNil)
 
-	err = validator.Valid("", "nonzero,len=3,max=1")
+	s = ""
+	err = validator.Valid(s, "nonzero,len=3,max=1")
 	c.Assert(err, NotNil)
 	errs, ok = err.(validator.ErrorArray)
 	c.Assert(ok, Equals, true)
 	c.Assert(errs, HasLen, 2)
-	c.Assert(errs, HasError, validator.ErrZeroValue)
-	c.Assert(errs, HasError, validator.ErrLen)
+	c.Assert(errs, HasError, validator.ErrZeroValueEmpty)
+	c.Assert(errs, HasError, validator.ErrLenString(3, len(s)))
 	c.Assert(errs, Not(HasError), validator.ErrMax)
 }
 
@@ -309,7 +311,7 @@ func (ms *MySuite) TestValidatePointerVar(c *C) {
 	err = validator.Validate(&test6{})
 	errs, ok = err.(validator.ErrorMap)
 	c.Assert(ok, Equals, true)
-	c.Assert(errs["A"], HasError, validator.ErrZeroValue)
+	c.Assert(errs["A"], HasError, validator.ErrZeroValueEmpty)
 
 	err = validator.Validate(&test6{&test2{}})
 	c.Assert(err, IsNil)
@@ -417,7 +419,7 @@ func (c *hasErrorChecker) Check(params []interface{}, names []string) (bool, str
 	}
 
 	for _, v := range slice {
-		if v == value {
+		if v.Error() == value.Error() {
 			return true, ""
 		}
 	}

@@ -117,6 +117,8 @@ func length(v interface{}, param string) error {
 		if actual != p {
 			return ErrLenFloat(p, actual)
 		}
+	case reflect.Ptr:
+		return nil
 	default:
 		return ErrUnsupported
 	}
@@ -176,6 +178,8 @@ func min(v interface{}, param string) error {
 		if actual < p {
 			return ErrMinFloat(p, actual)
 		}
+	case reflect.Ptr:
+		return nil
 	default:
 		return ErrUnsupported
 	}
@@ -235,6 +239,8 @@ func max(v interface{}, param string) error {
 		if actual > p {
 			return ErrMaxFloat(p, actual)
 		}
+	case reflect.Ptr:
+		return nil
 	default:
 		return ErrUnsupported
 	}

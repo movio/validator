@@ -293,10 +293,6 @@ func (mv *Validator) Validate(v interface{}) error {
 		}
 
 		fname := st.Field(i).Name
-		jsonTag := st.Field(i).Tag.Get("json")
-		if jsonTag != "" && jsonTag != "-" {
-			fname = jsonTag
-		}
 
 		var errs ErrorArray
 
@@ -322,7 +318,13 @@ func (mv *Validator) Validate(v interface{}) error {
 			}
 		}
 		if len(errs) > 0 {
-			m[fname] = errs
+			// replace error field name with json tag name if exists
+			errorFieldName := fname
+			jsonTag := st.Field(i).Tag.Get("json")
+			if jsonTag != "" && jsonTag != "-" {
+				errorFieldName = jsonTag
+			}
+			m[errorFieldName] = errs
 		}
 	}
 	if len(m) > 0 {

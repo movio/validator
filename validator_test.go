@@ -19,9 +19,9 @@ package validator_test
 import (
 	"testing"
 
-	. "gopkg.in/check.v1"
+	"github.com/movio/validator"
 
-	"gopkg.in/validator.v2"
+	. "gopkg.in/check.v1"
 )
 
 func Test(t *testing.T) {

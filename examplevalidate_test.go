@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sort"
 
-	"gopkg.in/validator.v2"
+	"github.com/movio/validator"
 )
 
 // This example demonstrates a custom function to process template text.
@@ -81,11 +81,10 @@ func ExampleValidate() {
 	}
 
 	// Output:
-	// Street cannot be empty.
 	// Invalid due to fields:
-	//	 - Address.Street (zero value)
-	// 	 - Age (less than min)
-	// 	 - Email (regular expression mismatch)
+	//	 - Address.Street (Must not be empty)
+	// 	 - Age (Must be at least 18, was 17)
+	// 	 - Email (Failed to match regular expression "^[0-9a-z]+@[0-9a-z]+(\.[0-9a-z]+)+$")
 }
 
 // This example shows how to use the Valid helper
@@ -125,7 +124,7 @@ func ExampleSetTag() {
 
 	// Output:
 	// foo --> valid: true, errs: <nil>
-	// bar --> valid: false, errs: A: less than min
+	// bar --> valid: false, errs: A: Must be at least 10, was 5
 }
 
 // This example shows you how to change the tag name
@@ -141,5 +140,5 @@ func ExampleWithTag() {
 
 	// Output:
 	// foo --> valid: true, errs: <nil>
-	// bar --> valid: false, errs: A: less than min
+	// bar --> valid: false, errs: A: Must be at least 10, was 5
 }

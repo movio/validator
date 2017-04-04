@@ -26,33 +26,43 @@ import (
 // as defined by the golang spec.
 func nonzero(v interface{}, param string) error {
 	st := reflect.ValueOf(v)
-	valid := true
 	switch st.Kind() {
 	case reflect.String:
-		valid = len(st.String()) != 0
+		if len(st.String()) == 0 {
+			return ErrZeroValueEmpty
+		}
 	case reflect.Ptr, reflect.Interface:
-		valid = !st.IsNil()
+		if st.IsNil() {
+			return ErrZeroValueEmpty
+		}
 	case reflect.Slice, reflect.Map, reflect.Array:
-		valid = st.Len() != 0
+		if st.Len() == 0 {
+			return ErrZeroValueEmpty
+		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		valid = st.Int() != 0
+		if st.Int() == 0 {
+			return ErrZeroValueNumber
+		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		valid = st.Uint() != 0
+		if st.Uint() == 0 {
+			return ErrZeroValueNumber
+		}
 	case reflect.Float32, reflect.Float64:
-		valid = st.Float() != 0
+		if st.Float() == 0 {
+			return ErrZeroValueNumber
+		}
 	case reflect.Bool:
-		valid = st.Bool()
+		if !st.Bool() {
+			return ErrZeroValueBool
+		}
 	case reflect.Invalid:
-		valid = false // always invalid
+		return ErrZeroValue
 	case reflect.Struct:
-		valid = true // always valid since only nil pointers are empty
+		return nil
 	default:
 		return ErrUnsupported
 	}
 
-	if !valid {
-		return ErrZeroValue
-	}
 	return nil
 }
 
@@ -61,44 +71,58 @@ func nonzero(v interface{}, param string) error {
 // for maps and slices it tests the number of items.
 func length(v interface{}, param string) error {
 	st := reflect.ValueOf(v)
-	valid := true
 	switch st.Kind() {
 	case reflect.String:
 		p, err := asInt(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		valid = int64(len(st.String())) == p
+		actual := len(st.String())
+		if int64(actual) != p {
+			return ErrLenString(p, actual)
+		}
 	case reflect.Slice, reflect.Map, reflect.Array:
 		p, err := asInt(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		valid = int64(st.Len()) == p
+		actual := st.Len()
+		if int64(actual) != p {
+			return ErrLenArray(p, actual)
+		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		p, err := asInt(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		valid = st.Int() == p
+		actual := st.Int()
+		if actual != p {
+			return ErrLenInt(p, actual)
+		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		p, err := asUint(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		valid = st.Uint() == p
+		actual := st.Uint()
+		if actual != p {
+			return ErrLenInt(int64(p), int64(actual))
+		}
 	case reflect.Float32, reflect.Float64:
 		p, err := asFloat(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		valid = st.Float() == p
+		actual := st.Float()
+		if actual != p {
+			return ErrLenFloat(p, actual)
+		}
+	case reflect.Ptr:
+		return nil
 	default:
 		return ErrUnsupported
 	}
-	if !valid {
-		return ErrLen
-	}
+
 	return nil
 }
 
@@ -108,44 +132,58 @@ func length(v interface{}, param string) error {
 // and slices it tests the number of items.
 func min(v interface{}, param string) error {
 	st := reflect.ValueOf(v)
-	invalid := false
 	switch st.Kind() {
 	case reflect.String:
 		p, err := asInt(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		invalid = int64(len(st.String())) < p
+		actual := len(st.String())
+		if int64(actual) < p {
+			return ErrMinString(p, actual)
+		}
 	case reflect.Slice, reflect.Map, reflect.Array:
 		p, err := asInt(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		invalid = int64(st.Len()) < p
+		actual := st.Len()
+		if int64(actual) < p {
+			return ErrMinArray(p, actual)
+		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		p, err := asInt(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		invalid = st.Int() < p
+		actual := st.Int()
+		if actual < p {
+			return ErrMinInt(int64(p), int64(actual))
+		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		p, err := asUint(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		invalid = st.Uint() < p
+		actual := st.Uint()
+		if actual < p {
+			return ErrMinInt(int64(p), int64(actual))
+		}
 	case reflect.Float32, reflect.Float64:
 		p, err := asFloat(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		invalid = st.Float() < p
+		actual := st.Float()
+		if actual < p {
+			return ErrMinFloat(p, actual)
+		}
+	case reflect.Ptr:
+		return nil
 	default:
 		return ErrUnsupported
 	}
-	if invalid {
-		return ErrMin
-	}
+
 	return nil
 }
 
@@ -155,43 +193,56 @@ func min(v interface{}, param string) error {
 // and slices it tests the number of items.
 func max(v interface{}, param string) error {
 	st := reflect.ValueOf(v)
-	var invalid bool
 	switch st.Kind() {
 	case reflect.String:
 		p, err := asInt(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		invalid = int64(len(st.String())) > p
+		actual := len(st.String())
+		if int64(actual) > p {
+			return ErrMaxString(p, actual)
+		}
 	case reflect.Slice, reflect.Map, reflect.Array:
 		p, err := asInt(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		invalid = int64(st.Len()) > p
+		actual := st.Len()
+		if int64(actual) > p {
+			return ErrMaxArray(p, actual)
+		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		p, err := asInt(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		invalid = st.Int() > p
+		actual := st.Int()
+		if actual > p {
+			return ErrMaxInt(p, actual)
+		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		p, err := asUint(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		invalid = st.Uint() > p
+		actual := st.Uint()
+		if actual > p {
+			return ErrMaxInt(int64(p), int64(actual))
+		}
 	case reflect.Float32, reflect.Float64:
 		p, err := asFloat(param)
 		if err != nil {
 			return ErrBadParameter
 		}
-		invalid = st.Float() > p
+		actual := st.Float()
+		if actual > p {
+			return ErrMaxFloat(p, actual)
+		}
+	case reflect.Ptr:
+		return nil
 	default:
 		return ErrUnsupported
-	}
-	if invalid {
-		return ErrMax
 	}
 	return nil
 }
@@ -210,7 +261,7 @@ func regex(v interface{}, param string) error {
 	}
 
 	if !re.MatchString(s) {
-		return ErrRegexp
+		return ErrRegexpDetailed(param)
 	}
 	return nil
 }

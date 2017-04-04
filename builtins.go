@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"unicode/utf8"
 )
 
 // nonzero tests whether a variable value non-zero
@@ -28,7 +29,7 @@ func nonzero(v interface{}, param string) error {
 	st := reflect.ValueOf(v)
 	switch st.Kind() {
 	case reflect.String:
-		if len(st.String()) == 0 {
+		if utf8.RuneCount([]byte(st.String())) == 0 {
 			return ErrZeroValueEmpty
 		}
 	case reflect.Ptr, reflect.Interface:
@@ -77,7 +78,7 @@ func length(v interface{}, param string) error {
 		if err != nil {
 			return ErrBadParameter
 		}
-		actual := len(st.String())
+		actual := utf8.RuneCount([]byte(st.String()))
 		if int64(actual) != p {
 			return ErrLenString(p, actual)
 		}
@@ -138,7 +139,7 @@ func min(v interface{}, param string) error {
 		if err != nil {
 			return ErrBadParameter
 		}
-		actual := len(st.String())
+		actual := utf8.RuneCount([]byte(st.String()))
 		if int64(actual) < p {
 			return ErrMinString(p, actual)
 		}
@@ -199,7 +200,7 @@ func max(v interface{}, param string) error {
 		if err != nil {
 			return ErrBadParameter
 		}
-		actual := len(st.String())
+		actual := utf8.RuneCount([]byte(st.String()))
 		if int64(actual) > p {
 			return ErrMaxString(p, actual)
 		}

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"unicode"
 )
 
@@ -180,7 +181,30 @@ type Validator struct {
 	// by their name.
 	validationFuncs map[string]ValidationFunc
 
-	tagsCache map[string][]tag
+	tagsCache tagsCache
+}
+
+type TagsCache interface {
+	get(tagString string) ([]tag, bool)
+	set(tagString string, tags []tag)
+}
+
+type tagsCache struct {
+	cache map[string][]tag
+	lock  sync.RWMutex
+}
+
+func (v *tagsCache) get(tagString string) ([]tag, bool) {
+	v.lock.RLock()
+	defer v.lock.RUnlock()
+	tags, ok := v.cache[tagString]
+	return tags, ok
+}
+
+func (v *tagsCache) set(tagString string, tags []tag) {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+	v.cache[tagString] = tags
 }
 
 // Helper validator so users can use the
@@ -198,7 +222,10 @@ func NewValidator() *Validator {
 			"max":     max,
 			"regexp":  regex,
 		},
-		tagsCache: map[string][]tag{},
+		tagsCache: tagsCache{
+			cache: map[string][]tag{},
+			lock:  sync.RWMutex{},
+		},
 	}
 }
 
@@ -364,7 +391,7 @@ func (mv *Validator) Valid(val interface{}, tags string) error {
 
 // validateVar validates one single variable
 func (mv *Validator) validateVar(v interface{}, tagString string) error {
-	tags, ok := mv.tagsCache[tagString]
+	tags, ok := mv.tagsCache.get(tagString)
 
 	if !ok {
 		parsedtags, err := mv.parseTags(tagString)
@@ -372,7 +399,7 @@ func (mv *Validator) validateVar(v interface{}, tagString string) error {
 			// unknown tag found, give up.
 			return err
 		}
-		mv.tagsCache[tagString] = parsedtags
+		mv.tagsCache.set(tagString, parsedtags)
 		tags = parsedtags
 	}
 

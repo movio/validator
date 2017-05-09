@@ -179,6 +179,8 @@ type Validator struct {
 	// validationFuncs is a map of ValidationFuncs indexed
 	// by their name.
 	validationFuncs map[string]ValidationFunc
+
+	tagsCache map[string][]tag
 }
 
 // Helper validator so users can use the
@@ -196,6 +198,7 @@ func NewValidator() *Validator {
 			"max":     max,
 			"regexp":  regex,
 		},
+		tagsCache: map[string][]tag{},
 	}
 }
 
@@ -360,12 +363,19 @@ func (mv *Validator) Valid(val interface{}, tags string) error {
 }
 
 // validateVar validates one single variable
-func (mv *Validator) validateVar(v interface{}, tag string) error {
-	tags, err := mv.parseTags(tag)
-	if err != nil {
-		// unknown tag found, give up.
-		return err
+func (mv *Validator) validateVar(v interface{}, tagString string) error {
+	tags, ok := mv.tagsCache[tagString]
+
+	if !ok {
+		parsedtags, err := mv.parseTags(tagString)
+		if err != nil {
+			// unknown tag found, give up.
+			return err
+		}
+		mv.tagsCache[tagString] = parsedtags
+		tags = parsedtags
 	}
+
 	errs := make(ErrorArray, 0, len(tags))
 	for _, t := range tags {
 		if err := t.Fn(v, t.Param); err != nil {
